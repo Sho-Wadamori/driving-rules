@@ -3,6 +3,7 @@ List countries based on road rules with a advanced filtering system'''
 # import required libraries
 import sqlite3
 import os
+import time
 
 # import tabulate library (table formatting)
 import subprocess
@@ -53,14 +54,31 @@ def filter_check(filter_choice):
         return False
 
 
+# check if style input is valid
+def choice_check(choice_input):
+    if choice_input.upper() == "L" or choice_input.upper() == "S":
+        return True
+    else:
+        return False
+
 while True:
     clear()
     print("Press \033[1;46m L \033[0m to list all countries\n")
+    print("Press \033[1;46m S \033[0m to show statistics\n")
     choice = input("").upper()
+    while not choice_check(choice):
+            print("\n\n\033[1;31mInvalid input.\033[0m\n")
+
+            print("Press \033[1;46m L \033[0m to list all countries\n")
+            print("Press \033[1;46m S \033[0m to show statistics\n")
+            choice = input("").upper()
 
 
 # List all countries
-    if choice == "L":
+    if choice == "S":
+        print("s")
+
+    elif choice == "L":
 
         # get filter
         print("\n\nWhat do you want to filter by?")
@@ -110,14 +128,26 @@ while True:
 
         # Filter System
         if filter_setting is False:
-            data = [order]
-            cursor.execute("SELECT * FROM country ORDER BY ?", data)
+            cursor.execute(f"SELECT * FROM country ORDER BY {order}")
         else:
-            data = [filter, order]
-            cursor.execute("SELECT * FROM country WHERE left_side = ? ORDER BY ?", data)
+            data = [filter]
+            cursor.execute(f"SELECT * FROM country WHERE left_side = ? ORDER BY {order}", data)
         output = cursor.fetchall()
 
         formatted_rows = [(id, code, name, 'Left' if side else 'Right', age) for id, code, name, side, age in output]
+
+        # loading screen to allow time for processing what is happening
+        clear()
+        print("\n\n\033[1;42m Loading. \033[0m\n\n")
+        time.sleep(0.5)
+        clear()
+        print("\n\n\033[1;42m Loading.. \033[0m\n\n")
+        time.sleep(0.5)
+        clear()
+        print("\n\n\033[1;42m Loading... \033[0m\n\n")
+        time.sleep(0.5)
+
+
 
         # Print Data
         if style.lower() == "f":
@@ -128,3 +158,11 @@ while True:
         input("\n\nPress \033[1;46m Enter \033[0m to return to the main menu...")
 
     # Stop when nothing is inputed
+
+
+
+# ideas:
+# Statistics Summary
+# search for indervidual country (LIKE function)
+# Comparison Tool
+# quiz
