@@ -47,35 +47,51 @@ def filter_check(filter_choice):
     return filter_choice in valid_filter
 
 
-# check if style input is valid
-def choice_check(choice_input):
-    if choice_input.upper() == "L" or choice_input.upper() == "S":
+# check if country ID is valid
+def id_check(input_id):
+    data = [input_id]
+    cursor.execute("SELECT country.*, traffic_rules.rule_name, traffic_rules.rule_value FROM country JOIN traffic_rules ON country.country_id = traffic_rules.country_id WHERE country.country_id = ?;", data)
+    found_countries = cursor.fetchall()
+    
+    if found_countries:
         return True
+
+    # error if no matching found
     else:
         return False
+
+
+# check if style input is valid
+def choice_check(choice_input):
+    valid_choice = ["L", "F", "C", "S", "Q"]
+    return choice_input in valid_choice
 
 
 while True:
     clear()
     print("Press \033[1;46m L \033[0m to list all countries\n")
     print("Press \033[1;46m F \033[0m to find a specific country\n")
+    print("Press \033[1;46m C \033[0m to compare two countries\n")
     print("Press \033[1;46m S \033[0m to show statistics\n")
+    print("Press \033[1;46m Q \033[0m to quit\n")
 
-    choice = input("").upper()
+    choice = input("").upper().strip()
     while not choice_check(choice):
         print("\n\n\033[1;31mInvalid input.\033[0m\n\n")
 
         print("Press \033[1;46m L \033[0m to list all countries\n")
         print("Press \033[1;46m F \033[0m to find a specific country\n")
+        print("Press \033[1;46m C \033[0m to compare two countries\n")
         print("Press \033[1;46m S \033[0m to show statistics\n")
-        choice = input("").upper()
+        print("Press \033[1;46m Q \033[0m to quit\n")
+        choice = input("").upper().strip()
 
     # -------------------------- Country Search --------------------------
     if choice == "F":
-        country_search = input("\n\nEnter the name of the country you want to find: ").title()
+        country_search = input("\n\nEnter the name of the country you want to find: ").title().strip()
         while not country_search:
             print("\n\n\033[1;31mCountry name cannot be empty.\033[0m\n")
-            country_search = input("Enter the name of the country you want to find: ").title()
+            country_search = input("Enter the name of the country you want to find: ").title().strip()
 
         # loading screen to allow time for processing what is happening
         clear()
@@ -91,14 +107,14 @@ while True:
         # print found country data
         # data = [country_search]
         data = ('%' + country_search + '%', '%' + country_search + '%')
-        cursor.execute("SELECT c.*, rr.rule_name, rr.rule_value FROM country c JOIN traffic_rules rr ON c.country_id = rr.country_id WHERE c.country_name LIKE ? OR c.country_code LIKE ? ;", data)
+        cursor.execute("SELECT country.*, traffic_rules.rule_name, traffic_rules.rule_value FROM country JOIN traffic_rules ON country.country_id = traffic_rules.country_id WHERE country.country_name LIKE ? OR country.country_code LIKE ? ;", data)
         found_countries = cursor.fetchall()
         header = ['\033[1mCOUNTRY ID\033[0m', '\033[1mCOUNTRY CODE\033[0m', '\033[1mNAME\033[0m', '\033[1mLEFT SIDE\033[0m', '\033[1mMIN DRIVING AGE\033[0m', '\033[1mRULE NAME\033[0m', '\033[1mRULE VALUE\033[0m']
 
         if found_countries:
             print("\n\n\033[1;42m Countries Found: \033[0m\n")
             formatted_rows = [(id, code, name, 'Left' if side else 'Right', age, rule_name, 'None' if rule_value == -1 else rule_value) for id, code, name, side, age, rule_name, rule_value in found_countries]
-            
+
             print(tabulate(formatted_rows, headers=header))
 
         # error if no matching found
@@ -108,8 +124,39 @@ while True:
         # Main menu return
         input("\n\nPress \033[1;46m Enter \033[0m to return to the main menu...\n")
 
+    # -------------------------- Comparison Tool --------------------------
+    elif choice == "C":
+
+        # show the full table
+        cursor.execute("SELECT * FROM country")
+        output = cursor.fetchall()
+        header = ['\033[1mCOUNTRY ID\033[0m', '\033[1mCOUNTRY CODE\033[0m', '\033[1mNAME\033[0m', '\033[1mLEFT SIDE\033[0m', '\033[1mMIN DRIVING AGE\033[0m']
+        formatted_rows = [(id, code, name, 'Left' if side else 'Right', age) for id, code, name, side, age in output]
+        print(tabulate(formatted_rows, headers=header, tablefmt="fancy_grid"))
+
+        # get id for both countries
+        compare_id_1 = input("\n\nEnter the country id of the first country you want to compare: ").strip()
+        while not id_check(compare_id_1):
+            print(f"\n\n\033[1;31mNo countries found matching the id: \033[100m {compare_id_1} \033[0m.\n")
+            compare_id_1 = input("\n\nEnter the country id of the first country you want to compare: ").strip()
+        
+        compare_id_2 = input("\n\nEnter the country id of the second country you want to compare: ").strip()
+        while not id_check(compare_id_2):
+            print(f"\n\n\033[1;31mNo countries found matching the id: \033[100m {compare_id_2} \033[0m.\n")
+            compare_id_2 = input("\n\nEnter the country id of the second country you want to compare: ").strip()
+
+        data = [compare_id_1, compare_id_2]
+        cursor.execute("SELECT country.*, traffic_rules.rule_name, traffic_rules.rule_value FROM country JOIN traffic_rules ON country.country_id = traffic_rules.country_id WHERE country.country_ID = ? OR country.country_ID = ?;", data)
+        output = cursor.fetchall()
+        header = ['\033[1mCOUNTRY ID\033[0m', '\033[1mCOUNTRY CODE\033[0m', '\033[1mNAME\033[0m', '\033[1mLEFT SIDE\033[0m', '\033[1mMIN DRIVING AGE\033[0m', '\033[1mRULE NAME\033[0m', '\033[1mRULE VALUE\033[0m']
+        formatted_rows = [(id, code, name, 'Left' if side else 'Right', age, rule_name, 'None' if rule_value == -1 else rule_value) for id, code, name, side, age, rule_name, rule_value in output]
+        print(tabulate(formatted_rows, headers=header, tablefmt="fancy_grid"))
+
+        # Main menu return
+        input("\n\nPress \033[1;46m Enter \033[0m to return to the main menu...\n")
+
     # --- Show Statistics ---
-    if choice == "S":
+    elif choice == "S":
 
         # retrieve information
         avg_min_licence = cursor.execute("SELECT AVG(min_licence_age) FROM country").fetchall()
@@ -133,33 +180,33 @@ while True:
 
         # get filter
         print("\n\nWhat do you want to filter by?")
-        filter_input = input("Only Include: \nLeft Side Driving: \033[1;46m L \033[0m | Right Side Driving: \033[1;46m R \033[0m | All: \033[1;46m A \033[0m\n").upper()
+        filter_input = input("Only Include: \nLeft Side Driving: \033[1;46m L \033[0m | Right Side Driving: \033[1;46m R \033[0m | All: \033[1;46m A \033[0m\n").upper().strip()
         while not filter_check(filter_input):
             print("\n\n\033[1;31mInvalid input. Please input either \033[1;46m L \033[0m \033[1;31mor \033[1;46m R \033[0m \033[1;31mor \033[1;46m A \033[0m\n")
 
             print("\nWhat do you want to filter by?")
-            filter_input = input("Only Include: \nLeft Side Driving: \033[1;46m L \033[0m | Right Side Driving: \033[1;46m R \033[0m | All: \033[1;46m A \033[0m\n").upper()
+            filter_input = input("Only Include: \nLeft Side Driving: \033[1;46m L \033[0m | Right Side Driving: \033[1;46m R \033[0m | All: \033[1;46m A \033[0m\n").upper().strip()
 
         # get style
         print("\n\nWhat style do you want the information in?")
-        style = input("Fancy: \033[1;46m F \033[0m | Simple: \033[1;46m S \033[0m\n").upper()
+        style = input("Fancy: \033[1;46m F \033[0m | Simple: \033[1;46m S \033[0m\n").upper().strip()
         while not style_check(style):
             print("\n\n\033[1;31mInvalid input. Please input either \033[1;46m F \033[0m \033[1;31mor \033[1;46m S \033[0m\n")
 
             print("\nWhat style do you want the information in?")
-            style = input("Fancy: \033[1;46m F \033[0m | Simple: \033[1;46m S \033[0m\n").upper()
+            style = input("Fancy: \033[1;46m F \033[0m | Simple: \033[1;46m S \033[0m\n").upper().strip()
 
         # get order
         print("\n\nWhat do you want the list ordered by?")
-        order_input = input("ID: \033[1;46m I \033[0m | Name: \033[1;46m N \033[0m | Driving Side: \033[1;46m D \033[0m | Alcohol Limit: \033[1;46m A \033[0m\n").upper()
+        order_input = input("ID: \033[1;46m I \033[0m | Name: \033[1;46m N \033[0m | Driving Side: \033[1;46m D \033[0m | Alcohol Limit: \033[1;46m A \033[0m\n").upper().strip()
         while not order_check(order_input):
             print("\n\n\033[1;31mInvalid input. Please input either \033[1;46m I \033[0m\033[1;31m, \033[1;46m N \033[0m\033[1;31m, \033[1;46m D \033[0m\033[1;31m or \033[1;46m A \033[0m\n")
             print("\nWhat do you want the list ordered by?")
-            order_input = input("ID: \033[1;46m I \033[0m | Name: \033[1;46m N \033[0m | Driving Side: \033[1;46m D \033[0m | Alcohol Limit: \033[1;46m A \033[0m\n").upper()
+            order_input = input("ID: \033[1;46m I \033[0m | Name: \033[1;46m N \033[0m | Driving Side: \033[1;46m D \033[0m | Alcohol Limit: \033[1;46m A \033[0m\n").upper().strip()
 
         print("\n\n")
 
-        # change filtering to inputed order
+        # change filtering to inputted order
         if filter_input == "L":
             filter_setting = True
             filter = "1"
@@ -169,7 +216,7 @@ while True:
         else:
             filter_setting = False
 
-        # change ordering to inputed order
+        # change ordering to inputted order
         if order_input == "I":
             order = "country_id"
         elif order_input == "N":
@@ -183,9 +230,9 @@ while True:
         # connecting with traffic_rules.db database
         if order == "alcohol":
             header = ['\033[1mCOUNTRY ID\033[0m', '\033[1mCOUNTRY CODE\033[0m', '\033[1mNAME\033[0m', '\033[1mLEFT SIDE\033[0m', '\033[1mMIN DRIVING AGE\033[0m', '\033[1mRULE NAME\033[0m', '\033[1mRULE VALUE\033[0m']
-            cursor.execute("SELECT c.*, rr.rule_name, rr.rule_value FROM country c JOIN traffic_rules rr ON c.country_id = rr.country_id WHERE rr.rule_name = 'Alcohol Limit' ORDER BY CAST(rr.rule_value AS FLOAT) ASC;")
+            cursor.execute("SELECT country.*, traffic_rules.rule_name, traffic_rules.rule_value FROM country JOIN traffic_rules ON country.country_id = traffic_rules.country_id WHERE traffic_rules.rule_name = 'Alcohol Limit' ORDER BY CAST(traffic_rules.rule_value AS FLOAT) ASC;")
             output = cursor.fetchall()
-            formatted_rows = [(id, code, name, 'Left' if side else 'Right', age, rule_name, rule_value) for id, code, name, side, age, rule_name, rule_value in output]
+            formatted_rows = [(id, code, name, 'Left' if side else 'Right', age, rule_name, 'None' if rule_value == -1 else rule_value) for id, code, name, side, age, rule_name, rule_value in output]
 
         # when only connecting to country.db
         else:
@@ -220,4 +267,7 @@ while True:
         # main menu return
         input("\n\nPress \033[1;46m Enter \033[0m to return to the main menu...\n")
 
-    # stop when nothing is inputed
+    # -------------------------- Quit --------------------------
+    # end program when 'Q' is inputted 
+    elif choice == "Q":
+        break
