@@ -58,14 +58,55 @@ def choice_check(choice_input):
 while True:
     clear()
     print("Press \033[1;46m L \033[0m to list all countries\n")
+    print("Press \033[1;46m F \033[0m to find a specific country\n")
     print("Press \033[1;46m S \033[0m to show statistics\n")
+
     choice = input("").upper()
     while not choice_check(choice):
         print("\n\n\033[1;31mInvalid input.\033[0m\n\n")
 
         print("Press \033[1;46m L \033[0m to list all countries\n")
+        print("Press \033[1;46m F \033[0m to find a specific country\n")
         print("Press \033[1;46m S \033[0m to show statistics\n")
         choice = input("").upper()
+
+    # -------------------------- Country Search --------------------------
+    if choice == "F":
+        country_search = input("\n\nEnter the name of the country you want to find: ").title()
+        while not country_search:
+            print("\n\n\033[1;31mCountry name cannot be empty.\033[0m\n")
+            country_search = input("Enter the name of the country you want to find: ").title()
+
+        # loading screen to allow time for processing what is happening
+        clear()
+        print("\n\n\033[1;42m Loading. \033[0m\n\n")
+        time.sleep(0.2)
+        clear()
+        print("\n\n\033[1;42m Loading.. \033[0m\n\n")
+        time.sleep(0.2)
+        clear()
+        print("\n\n\033[1;42m Loading... \033[0m\n\n")
+        time.sleep(0.2)
+
+        # print found country data
+        # data = [country_search]
+        data = ('%' + country_search + '%', '%' + country_search + '%')
+        cursor.execute("SELECT c.*, rr.rule_name, rr.rule_value FROM country c JOIN traffic_rules rr ON c.country_id = rr.country_id WHERE c.country_name LIKE ? OR c.country_code LIKE ? ;", data)
+        found_countries = cursor.fetchall()
+        header = ['\033[1mCOUNTRY ID\033[0m', '\033[1mCOUNTRY CODE\033[0m', '\033[1mNAME\033[0m', '\033[1mLEFT SIDE\033[0m', '\033[1mMIN DRIVING AGE\033[0m', '\033[1mRULE NAME\033[0m', '\033[1mRULE VALUE\033[0m']
+
+        if found_countries:
+            print("\n\n\033[1;42m Countries Found: \033[0m\n")
+            formatted_rows = [(id, code, name, 'Left' if side else 'Right', age, rule_name, 'None' if rule_value == -1 else rule_value) for id, code, name, side, age, rule_name, rule_value in found_countries]
+            
+            print(tabulate(formatted_rows, headers=header))
+
+        # error if no matching found
+        else:
+            print(f"\n\n\033[1;31mNo countries found matching: \033[100m {country_search} \033[0m.\n")
+
+        # Main menu return
+        input("\n\nPress \033[1;46m Enter \033[0m to return to the main menu...\n")
 
     # --- Show Statistics ---
     if choice == "S":
