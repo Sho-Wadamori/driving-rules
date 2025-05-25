@@ -31,7 +31,7 @@ def clear():
 
 # check if order input is valid
 def order_check(order_choice):
-    valid_order = ["I", "N", "D", "A"]
+    valid_order = ["I", "N", "M","D", "A"]
     return order_choice in valid_order
 
 
@@ -157,20 +157,31 @@ while True:
 
     # --- Show Statistics ---
     elif choice == "S":
-
+        clear()
         # retrieve information
-        avg_min_licence = cursor.execute("SELECT AVG(min_licence_age) FROM country").fetchall()
         left_count = cursor.execute("SELECT COUNT(*) FROM country WHERE left_side=1").fetchall()
         right_count = cursor.execute("SELECT COUNT(*) FROM country WHERE left_side=0").fetchall()
+        min_licence_count_14 = cursor.execute("SELECT COUNT(*) FROM country WHERE min_licence_age = 14").fetchall()
+        min_licence_count_15 = cursor.execute("SELECT COUNT(*) FROM country WHERE min_licence_age = 15").fetchall()
+        min_licence_count_16 = cursor.execute("SELECT COUNT(*) FROM country WHERE min_licence_age = 16").fetchall()
+        min_licence_count_17 = cursor.execute("SELECT COUNT(*) FROM country WHERE min_licence_age = 17").fetchall()
+        min_licence_count_18 = cursor.execute("SELECT COUNT(*) FROM country WHERE min_licence_age = 18").fetchall()
+        min_licence_count_21 = cursor.execute("SELECT COUNT(*) FROM country WHERE min_licence_age = 21").fetchall()
+        avg_min_licence = cursor.execute("SELECT AVG(min_licence_age) FROM country").fetchall()
+        avg_alcohol_limit = cursor.execute("SELECT AVG(rule_value) FROM traffic_rules WHERE rule_name = 'Alcohol Limit' AND rule_value != -1").fetchall()
         country_count = cursor.execute("SELECT COUNT(*) FROM country").fetchall()
-        last_updated = "20th of May 2025"
+        last_updated = "26th of May 2025"
 
         # print information
-        print(f"\n\n\033[1mAverage Minimum Driving Age:\033[0m \033[100m {avg_min_licence[0][0]} \033[0m")
-        print(f"\033[1mLeft\033[0m - \033[100m {left_count[0][0]} \033[0m | \033[1mRight\033[0m - \033[100m {right_count[0][0]} \033[0m")
-        print(f"\033[1mNumber of Countries in the Database:\033[0m \033[100m {country_count[0][0]} \033[0m")
-        # print(f"Minimum Licence Distribution: \n16 - {} countries | 17 - {} countries | 18 - {} countries")
-        print(f"\033[1mLast Updated:\033[0m \033[100m {last_updated} \033[0m")
+        print(f"Driving Side Distribution:")
+        print(f"Left\033[0m - \033[100m {left_count[0][0]} \033[0m | Right\033[0m - \033[100m {right_count[0][0]} \033[0m\n")
+        print(f"Minimum Licence Distribution: ")
+        print(f"14yrs - \033[100m {min_licence_count_14[0][0] } countries\033[0m | 15yrs - \033[100m {min_licence_count_15[0][0]} countries \033[0m | 16yrs - \033[100m {min_licence_count_16[0][0]} countries \033[0m")
+        print(f"17yrs - \033[100m {min_licence_count_17[0][0] } countries\033[0m | 18yrs - \033[100m {min_licence_count_18[0][0]} countries \033[0m | 21yrs - \033[100m {min_licence_count_21[0][0]} countries \033[0m")
+        print(f"\nAverage Minimum Driving Age:\033[0m \033[100m {round(avg_min_licence[0][0], 2)} \033[0m")
+        print(f"Average Alcohol Limit:\033[0m \033[100m {round(avg_alcohol_limit[0][0], 2)} \033[0m")
+        print(f"Number of Countries in the Database:\033[0m \033[100m {country_count[0][0]} \033[0m")
+        print(f"Last Updated:\033[0m \033[100m {last_updated} \033[0m")
 
         # Main menu return
         input("\n\nPress \033[1;46m Enter \033[0m to return to the main menu...\n")
@@ -198,11 +209,11 @@ while True:
 
         # get order
         print("\n\nWhat do you want the list ordered by?")
-        order_input = input("ID: \033[1;46m I \033[0m | Name: \033[1;46m N \033[0m | Driving Side: \033[1;46m D \033[0m | Alcohol Limit: \033[1;46m A \033[0m\n").upper().strip()
+        order_input = input("ID: \033[1;46m I \033[0m | Name: \033[1;46m N \033[0m | Driving Side: \033[1;46m D \033[0m | Minimum Licence Age: \033[1;46m M \033[0m | Alcohol Limit: \033[1;46m A \033[0m\n").upper().strip()
         while not order_check(order_input):
-            print("\n\n\033[1;31mInvalid input. Please input either \033[1;46m I \033[0m\033[1;31m, \033[1;46m N \033[0m\033[1;31m, \033[1;46m D \033[0m\033[1;31m or \033[1;46m A \033[0m\n")
+            print("\n\n\033[1;31mInvalid input. Please input either \033[1;46m I \033[0m\033[1;31m, \033[1;46m N \033[0m\033[1;31m, \033[1;46m D \033[0m\033[1;31m, \033[1;46m M \033[0m\033[1;31m or \033[1;46m A \033[0m\n")
             print("\nWhat do you want the list ordered by?")
-            order_input = input("ID: \033[1;46m I \033[0m | Name: \033[1;46m N \033[0m | Driving Side: \033[1;46m D \033[0m | Alcohol Limit: \033[1;46m A \033[0m\n").upper().strip()
+            order_input = input("ID: \033[1;46m I \033[0m | Name: \033[1;46m N \033[0m | Driving Side: \033[1;46m D \033[0m | Minimum Licence Age: \033[1;46m M \033[0m | Alcohol Limit: \033[1;46m A \033[0m\n").upper().strip()
 
         print("\n\n")
 
@@ -216,11 +227,13 @@ while True:
         else:
             filter_setting = False
 
-        # change ordering to inputted order
+         # change ordering to inputted order
         if order_input == "I":
             order = "country_id"
         elif order_input == "N":
             order = "country_name"
+        elif order_input == "M":
+            order = "min_licence_age"
         elif order_input == "A":
             order = "alcohol"
         else:
