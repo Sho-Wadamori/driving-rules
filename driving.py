@@ -1,9 +1,10 @@
-"""A sql and python program that can:
-- List countries based on road rules with an advanced filtering and ordering system
+"""
+    A SQL and python program that can:
+- List countries based on road rules with an advanced filtering and ordering
 - Search for a specific country
 - Compare two countries based on their road rules
 - Show statistics about the countries in the database
-More information on the database and this program can be found on the github page readme file:
+More information can be found on the GitHub repository README.md:
 https://github.com/Sho-Wadamori/driving-rules?tab=readme-ov-file#readme
 """
 # import required libraries
@@ -298,6 +299,23 @@ while True:
             print("\nWhat do you want the list ordered by?")
             order_input = input("ID: \033[1;46m I \033[0m | Name: \033[1;46m N \033[0m | Driving Side: \033[1;46m D \033[0m | Minimum Licence Age: \033[1;46m M \033[0m | Alcohol Limit: \033[1;46m A \033[0m | Max Speed: \033[1;46m S \033[0m\n> ").upper().strip()
 
+        # ask for which rule to display if not ordered by rule
+        if order_input != "A" and order_input != "S":
+            # ask what rule to display
+            print("\n\nWhich traffic rule do you want to view?")
+            rule_choice = input("Alcohol Limit: \033[1;46m A \033[0m | Max Speed: \033[1;46m S \033[0m\n> ").upper().strip()
+            while not rule_check(rule_choice):
+                print("\n\n\033[1;31mInvalid input. Please input either \033[1;46m A \033[0m \033[1;31mor \033[1;46m S \033[0m\n")
+
+                print("\nWhich traffic rule do you want to view?")
+                rule_choice = input("Alcohol Limit: \033[1;46m A \033[0m | Max Speed: \033[1;46m S \033[0m\n> ").upper().strip()
+
+            # change rule_name to input
+            if rule_choice == "A":
+                rule_name = "Alcohol Limit"
+            else:
+                rule_name = "Max Speed"
+
         # change filtering to inputted order
         if filter_input == "L":
             filter_setting = True
@@ -335,18 +353,19 @@ while True:
             output = cursor.fetchall()
             formatted_rows = [(id, code, name, 'Left' if side else 'Right', age, rule_name, 'None' if rule_value == -1 else rule_value) for id, code, name, side, age, rule_name, rule_value in output]
 
-        # when only connecting to country.db
+        # when not ordering by rule
         else:
-            header = ['\033[1mCOUNTRY ID\033[0m', '\033[1mCOUNTRY CODE\033[0m', '\033[1mNAME\033[0m', '\033[1mDRIVING SIDE\033[0m', '\033[1mMIN DRIVING AGE\033[0m']
+            header = ['\033[1mCOUNTRY ID\033[0m', '\033[1mCOUNTRY CODE\033[0m', '\033[1mNAME\033[0m', '\033[1mDRIVING SIDE\033[0m', '\033[1mMIN DRIVING AGE\033[0m', '\033[1mRULE NAME\033[0m', '\033[1mRULE VALUE\033[0m']
             if filter_setting is False:
-                cursor.execute(f"SELECT * FROM country ORDER BY {order}")
+                data = [rule_name]
+                cursor.execute(f"SELECT country.*, traffic_rules.rule_name, traffic_rules.rule_value FROM country JOIN traffic_rules ON country.country_id = traffic_rules.country_id WHERE traffic_rules.rule_name = ? ORDER BY {order};", data)
 
             else:
-                data = [filter]
-                cursor.execute(f"SELECT * FROM country WHERE left_side = ? ORDER BY {order}", data)
+                data = [rule_name, filter]
+                cursor.execute(f"SELECT country.*, traffic_rules.rule_name, traffic_rules.rule_value FROM country JOIN traffic_rules ON country.country_id = traffic_rules.country_id WHERE traffic_rules.rule_name = ? AND left_side = ? ORDER BY {order};", data)
 
             output = cursor.fetchall()
-            formatted_rows = [(id, code, name, 'Left' if side else 'Right', age) for id, code, name, side, age in output]
+            formatted_rows = [(id, code, name, 'Left' if side else 'Right', age, rule_name, 'None' if rule_value == -1 else rule_value) for id, code, name, side, age, rule_name, rule_value in output]
 
         # loading screen to allow time for processing what is happening
         clear()
