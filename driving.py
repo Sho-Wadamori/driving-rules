@@ -30,12 +30,17 @@ except ImportError:
 connection = sqlite3.connect("country.db")
 cursor = connection.cursor()
 
-# changeable lists
-last_updated = "29th of May 2025"  # last updated date for statistics (UPDATE MANUALLY)
-country_columns = "country.country_code, country.country_name, country.left_side, country.min_licence_age, traffic_rules.rule_name, traffic_rules.rule_value"  # list without IDs
+# -------------------------- Configuration --------------------------
+last_updated = "29th of May 2025"  # manually updated date that is used in stats
+country_columns = (
+    "country.country_code, country.country_name, country.left_side, country.min_licence_age, "
+    "traffic_rules.rule_name, traffic_rules.rule_value FROM country "
+    "JOIN traffic_rules ON country.country_id = traffic_rules.country_id"
+)  # join query used in almost all SELECTs that doesn't use ID.
 loading_time = 0.1
 
-# clear screen
+
+# clear terminal
 def clear():
     os.system('cls' if os.name == 'nt' else 'clear')
 
@@ -58,10 +63,10 @@ def rule_check(rule_choice):
     return rule_choice in valid_rule
 
 
-# check if country ID is valid
+# check if country ID exists
 def id_check(input_id):
     data = [input_id]
-    cursor.execute("SELECT country.*, traffic_rules.rule_name, traffic_rules.rule_value FROM country JOIN traffic_rules ON country.country_id = traffic_rules.country_id WHERE country.country_id = ?;", data)
+    cursor.execute("SELECT * FROM country WHERE country.country_id = ?;", data)
     found_countries = cursor.fetchall()
 
     # Check if country ID exists
@@ -86,16 +91,17 @@ def display_header(title):
     print("="*70)
 
 
-# header text (without id)
+# returns header text (without id)
 def get_header():
     return ['\033[1mCOUNTRY CODE\033[0m', '\033[1mNAME\033[0m', '\033[1mDRIVING SIDE\033[0m', '\033[1mMIN DRIVING AGE\033[0m', '\033[1mRULE NAME\033[0m', '\033[1mRULE VALUE\033[0m']
 
 
-# formatted row text (without id)
+# returns formatted rows (without id)
 def get_format(data):
     return [(code, name, 'Left' if side else 'Right', age, rule_name, 'None' if rule_value == -1 else rule_value) for code, name, side, age, rule_name, rule_value in data]
 
 
+# -------------------------- Main Menu Loop --------------------------
 while True:
     # clear terminal and ask for what they want to do
     clear()
@@ -120,6 +126,7 @@ while True:
         choice = input("> ").upper().strip()
 
     # -------------------------- Country Search --------------------------
+    # find a country by country name or code
     if choice == "F":
         # display header title
         display_header(" COUNTRY SEARCH ")
@@ -157,7 +164,7 @@ while True:
 
         # search for inputed country
         data = ('%' + country_search + '%', '%' + country_search + '%', rule_name)
-        cursor.execute(f"SELECT {country_columns} FROM country JOIN traffic_rules ON country.country_id = traffic_rules.country_id WHERE (UPPER(country.country_name) LIKE ? OR UPPER(country.country_code) LIKE ?) AND traffic_rules.rule_name = ?;", data)
+        cursor.execute(f"SELECT {country_columns} WHERE (UPPER(country.country_name) LIKE ? OR UPPER(country.country_code) LIKE ?) AND traffic_rules.rule_name = ?;", data)
         found_countries = cursor.fetchall()
         header = get_header()
 
@@ -177,6 +184,7 @@ while True:
         input("\n\nPress \033[1;46m Enter \033[0m to return to the main menu...\n")
 
     # -------------------------- Comparison Tool --------------------------
+    # compares two country using country ids
     elif choice == "C":
         # display header title
         display_header(" COMPARISON TOOL ")
@@ -242,6 +250,7 @@ while True:
         input("\n\nPress \033[1;46m Enter \033[0m to return to the main menu...\n")
 
     # -------------------------- Show Statistics --------------------------
+    # shows general statistics for the databse
     elif choice == "S":
         # display header title
         display_header(" STATISTICS ")
@@ -276,6 +285,7 @@ while True:
         input("\n\nPress \033[1;46m Enter \033[0m to return to the main menu...\n")
 
     # -------------------------- List all countries --------------------------
+    # lists all countries with a ordering and filtering tool
     elif choice == "L":
         # display header title
         display_header(" COUNTRY LIST ")
@@ -352,10 +362,10 @@ while True:
         if order_input == "A" or order_input == "S":
             if filter_toggle is True:
                 data = [order, filter_setting]
-                cursor.execute(f"SELECT {country_columns} FROM country JOIN traffic_rules ON country.country_id = traffic_rules.country_id WHERE traffic_rules.rule_name = ? AND country.left_side = ? ORDER BY CAST(traffic_rules.rule_value AS FLOAT) ASC;", data)
+                cursor.execute(f"SELECT {country_columns} WHERE traffic_rules.rule_name = ? AND country.left_side = ? ORDER BY CAST(traffic_rules.rule_value AS FLOAT) ASC;", data)
             else:
                 data = [order]
-                cursor.execute(f"SELECT {country_columns} FROM country JOIN traffic_rules ON country.country_id = traffic_rules.country_id WHERE traffic_rules.rule_name = ? ORDER BY CAST(traffic_rules.rule_value AS FLOAT) ASC;", data)
+                cursor.execute(f"SELECT {country_columns} WHERE traffic_rules.rule_name = ? ORDER BY CAST(traffic_rules.rule_value AS FLOAT) ASC;", data)
             header = get_header()
             output = cursor.fetchall()
             formatted_rows = get_format(output)
@@ -365,11 +375,11 @@ while True:
             header = get_header()
             if filter_toggle is False:
                 data = [rule_name]
-                cursor.execute(f"SELECT {country_columns} FROM country JOIN traffic_rules ON country.country_id = traffic_rules.country_id WHERE traffic_rules.rule_name = ? ORDER BY {order};", data)
+                cursor.execute(f"SELECT {country_columns} WHERE traffic_rules.rule_name = ? ORDER BY {order};", data)
 
             else:
                 data = [rule_name, filter_setting]
-                cursor.execute(f"SELECT {country_columns} FROM country JOIN traffic_rules ON country.country_id = traffic_rules.country_id WHERE traffic_rules.rule_name = ? AND left_side = ? ORDER BY {order};", data)
+                cursor.execute(f"SELECT {country_columns} WHERE traffic_rules.rule_name = ? AND left_side = ? ORDER BY {order};", data)
 
             output = cursor.fetchall()
             formatted_rows = get_format(output)
@@ -398,7 +408,7 @@ while True:
         input("\n\nPress \033[1;46m Enter \033[0m to return to the main menu...\n")
 
     # -------------------------- Quit --------------------------
-    # end program when 'Q' is inputted
+    # ends program and closes database
     elif choice == "Q":
         clear()
         print("\n\n\033[1;42m  Exiting Program. Goodbye! \033[0m\n\n")
